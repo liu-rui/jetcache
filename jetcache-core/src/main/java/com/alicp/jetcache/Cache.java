@@ -141,6 +141,7 @@ public interface Cache<K, V> extends Closeable {
     /**
      * Clean resources created by this cache.
      */
+    @Override
     default void close() {
     }
 
@@ -319,18 +320,7 @@ public interface Cache<K, V> extends Closeable {
      * @param cacheNullWhenLoaderReturnNull true if null value returned by loader should put into cache use the key
      * @return the value
      */
-    default V computeIfAbsent(K key, Function<K, V> loader, boolean cacheNullWhenLoaderReturnNull) {
-        CacheGetResult<V> r = GET(key);
-        if (r.isSuccess()) {
-            return r.getValue();
-        } else {
-            V loadedValue = loader.apply(key);
-            if (loadedValue != null || cacheNullWhenLoaderReturnNull) {
-                put(key, loadedValue);
-            }
-            return loadedValue;
-        }
-    }
+    V computeIfAbsent(K key, Function<K, V> loader, boolean cacheNullWhenLoaderReturnNull);
 
     /**
      * If there is a value associated with the key, return the value;
@@ -342,18 +332,7 @@ public interface Cache<K, V> extends Closeable {
      * @param timeUnit the time unit of expireAfterWrite
      * @return the value
      */
-    default V computeIfAbsent(K key, Function<K, V> loader, boolean cacheNullWhenLoaderReturnNull, long expireAfterWrite, TimeUnit timeUnit) {
-        CacheGetResult<V> r = GET(key);
-        if (r.isSuccess()) {
-            return r.getValue();
-        } else {
-            V loadedValue = loader.apply(key);
-            if (loadedValue != null || cacheNullWhenLoaderReturnNull) {
-                PUT(key, loadedValue, expireAfterWrite, timeUnit);
-            }
-            return loadedValue;
-        }
-    }
+    V computeIfAbsent(K key, Function<K, V> loader, boolean cacheNullWhenLoaderReturnNull, long expireAfterWrite, TimeUnit timeUnit);
 
     /**
      * Associates the specified value with the specified key in the cache.
@@ -473,7 +452,7 @@ public interface Cache<K, V> extends Closeable {
      * @param expireAfterWrite the TTL(time to live) of the KV association
      * @param timeUnit the time unit of expireAfterWrite
      * @return SUCCESS if the specified key is not already associated with a value,
-     * or EXISTS if the specified key is not already associated with a value,
+     * or EXISTS if the specified key is already associated with a value,
      * or FAIL if error occurs.
      */
     CacheResult PUT_IF_ABSENT(K key, V value, long expireAfterWrite, TimeUnit timeUnit);

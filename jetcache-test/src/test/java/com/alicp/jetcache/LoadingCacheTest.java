@@ -24,7 +24,6 @@ public class LoadingCacheTest extends AbstractCacheTest {
     public void test() throws Exception {
         cache = LinkedHashMapCacheBuilder.createLinkedHashMapCacheBuilder()
                 .buildCache();
-        cache = new MonitoredCache(cache);
         cache = new LoadingCache<>(cache);
         baseTest();
         loadingCacheTest(cache, 0);
@@ -36,6 +35,7 @@ public class LoadingCacheTest extends AbstractCacheTest {
         CacheLoader oldLoader = cache.config().getLoader();
         cache.config().setLoader((key) -> key + "_V" + count.getAndIncrement());
         loadingCacheTestImpl(cache, waitMillis);
+        vetoTest(cache, waitMillis);
         nullValueTest(cache, waitMillis);
         cache.config().setLoader(oldLoader);
     }
@@ -45,7 +45,31 @@ public class LoadingCacheTest extends AbstractCacheTest {
         builder.loader((key) -> key + "_V" + count.getAndIncrement());
         Cache cache = builder.buildCache();
         loadingCacheTestImpl(cache, waitMillis);
+        vetoTest(cache, waitMillis);
         nullValueTest(cache, waitMillis);
+    }
+
+    private static void vetoTest(Cache cache, long waitMillis) throws Exception {
+        cache.config().setLoader(new CacheLoader() {
+            @Override
+            public Object load(Object key) throws Throwable {
+                return key + "_V";
+            }
+
+            @Override
+            public boolean vetoCacheUpdate() {
+                return true;
+            }
+        });
+        cache.get("vetoTest");
+        Thread.sleep(waitMillis);//wait for async operations
+        Assert.assertEquals(CacheResultCode.NOT_EXISTS, cache.GET("vetoTest").getResultCode());
+
+        Set s = new HashSet();
+        s.add("vetoTest");
+        cache.getAll(s);
+        Thread.sleep(waitMillis);//wait for async operations
+        Assert.assertEquals(CacheResultCode.NOT_EXISTS, cache.GET("vetoTest").getResultCode());
     }
 
     private static void nullValueTest(Cache cache, long waitMillis) throws Exception {

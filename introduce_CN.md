@@ -36,15 +36,17 @@ public interface UserService {
 ```
 第一个例子中我们没有指定key，JetCache会根据参数自动生成，这个例子我们指定了key，并且展示了缓存的更新和删除。
 
-自动刷新是JetCache的大杀器：
+自动刷新和加载保护是JetCache的大杀器，对于加载开销比较大的对象，为了防止缓存未命中时的高并发访问打爆数据库：
 ```java
 public interface SummaryService{
     @Cached(expire = 3600, cacheType = CacheType.REMOTE)
     @CacheRefresh(refresh = 1800, stopRefreshAfterLastAccess = 3600, timeUnit = TimeUnit.SECONDS)
+    @CachePenetrationProtect
     BigDecimal salesVolumeSummary(int timeId, long catagoryId);
 }
 ```
 cacheType为REMOTE或者BOTH的时候，刷新行为是全局唯一的，也就是说，即使应用服务器是一个集群，也不会出现多个服务器同时去刷新一个key的情况。
+CachePenetrationProtect注解保证当缓存未命中的时候，一个JVM里面只有一个线程去执行方法，其它线程等待结果。
 一个key的刷新任务，自该key首次被访问后初始化，如果该key长时间不被访问，在stopRefreshAfterLastAccess指定的时间后，相关的刷新任务就会被自动移除，这样就避免了浪费资源去进行没有意义的刷新。
 
 加在方法上的注解毕竟不能提供最灵活的控制，所以JetCache提供了Cache API，使用起来就像Map一样：
@@ -66,10 +68,10 @@ private Cache<Long, UserDO> userCache;
 也可以通过和guava cache/caffeine类似的builder来创建：
 ```java
 GenericObjectPoolConfig pc = new GenericObjectPoolConfig();
-        pc.setMinIdle(2);
-        pc.setMaxIdle(10);
-        pc.setMaxTotal(10);
-        JedisPool pool = new JedisPool(pc, "localhost", 6379);
+pc.setMinIdle(2);
+pc.setMaxIdle(10);
+pc.setMaxTotal(10);
+JedisPool pool = new JedisPool(pc, "localhost", 6379);
 Cache<Long, UserDO> userCache = RedisCacheBuilder.createRedisCacheBuilder()
                 .keyConvertor(FastjsonKeyConvertor.INSTANCE)
                 .valueEncoder(JavaValueEncoder.INSTANCE)
@@ -100,12 +102,22 @@ cache.tryLockAndRun("key", 60, TimeUnit.SECONDS, () -> heavyDatabaseOperation())
 ```java
 @CreateCache
 @CacheRefresh(timeUnit = TimeUnit.MINUTES, refresh = 60)
+@CachePenetrationProtect
 private Cache<String, Long> orderSumCache;
 
 @PostConstruct
 public void init(){
     orderSumCache.config().setLoader(this::loadOrderSumFromDatabase);
 }
+```
+
+如果没有使用注解，用builder一样也可以做出自动刷新：
+```java
+Cache<String, Long> orderSumCache = RedisCacheBuilder.createRedisCacheBuilder()
+    ......省略
+    .refreshPolicy(RefreshPolicy.newPolicy(60, TimeUnit.SECONDS))
+    .loader(this::loadOrderSumFromDatabase)
+    .buildCache();
 ```
 
 当前支持的缓存系统包括以下4个，而且要支持一种新的缓存也是非常容易的：

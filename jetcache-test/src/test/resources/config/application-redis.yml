@@ -1,6 +1,8 @@
 jetcache:
   statIntervalMinutes: 15
   areaInCacheName: false
+  hidePackages: com.alibaba
+  penetrationProtect: false
 
   local:
     default:
@@ -26,6 +28,24 @@ jetcache:
       port: 6379
       defaultExpireInMillis: 10000
       keyPrefix: jedisTest
+
+      readFromSlave: False
+      slaves:
+        S1:
+          poolConfig:
+            minIdle: 2
+            maxIdle: 5
+            maxTotal: 10
+          host: 127.0.0.1
+          port: 6380
+          weight: 30
+        S2:
+          poolConfig:
+            minIdle: 2
+            maxIdle: 5
+            maxTotal: 10
+          host: 127.0.0.1
+          port: 6381
     A1:
       type: redis
       keyConvertor: fastjson
@@ -38,6 +58,6 @@ jetcache:
       valueEncoder: kryo?useIdentityNumber=false
       valueDecoder: kryo?useIdentityNumber=false
       defaultExpireInMillis: 10000
-      keyPrefix: jedisTest
+      keyPrefix: jedisTest_A1
 
 

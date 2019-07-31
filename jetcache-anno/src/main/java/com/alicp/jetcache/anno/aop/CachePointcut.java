@@ -31,6 +31,7 @@ public class CachePointcut extends StaticMethodMatcherPointcut implements ClassF
         this.basePackages = basePackages;
     }
 
+    @Override
     public boolean matches(Class clazz) {
         boolean b = matchesImpl(clazz);
         logger.trace("check class match {}: {}", b, clazz);
@@ -87,9 +88,13 @@ public class CachePointcut extends StaticMethodMatcherPointcut implements ClassF
         if (name.indexOf("$$EnhancerBySpringCGLIB$$") >= 0) {
             return true;
         }
+        if (name.indexOf("$$FastClassBySpringCGLIB$$") >= 0) {
+            return true;
+        }
         return false;
     }
 
+    @Override
     public boolean matches(Method method, Class targetClass) {
         boolean b = matchesImpl(method, targetClass);
         if (b) {
@@ -112,6 +117,9 @@ public class CachePointcut extends StaticMethodMatcherPointcut implements ClassF
 
     private boolean matchesImpl(Method method, Class targetClass) {
         if (!matchesThis(method.getDeclaringClass())) {
+            return false;
+        }
+        if (exclude(targetClass.getName())) {
             return false;
         }
         String key = getKey(method, targetClass);
@@ -153,6 +161,14 @@ public class CachePointcut extends StaticMethodMatcherPointcut implements ClassF
     }
 
     private void parseByTargetClass(CacheInvokeConfig cac, Class<?> clazz, String name, Class<?>[] paramTypes) {
+        if (!clazz.isInterface() && clazz.getSuperclass() != null) {
+            parseByTargetClass(cac, clazz.getSuperclass(), name, paramTypes);
+        }
+        Class<?>[] intfs = clazz.getInterfaces();
+        for (Class<?> it : intfs) {
+            parseByTargetClass(cac, it, name, paramTypes);
+        }
+
         boolean matchThis = matchesThis(clazz);
         if (matchThis) {
             Method[] methods = clazz.getDeclaredMethods();
@@ -162,14 +178,6 @@ public class CachePointcut extends StaticMethodMatcherPointcut implements ClassF
                     break;
                 }
             }
-        }
-
-        if (!clazz.isInterface() && clazz.getSuperclass() != null) {
-            parseByTargetClass(cac, clazz.getSuperclass(), name, paramTypes);
-        }
-        Class<?>[] intfs = clazz.getInterfaces();
-        for (Class<?> it : intfs) {
-            parseByTargetClass(cac, it, name, paramTypes);
         }
     }
 

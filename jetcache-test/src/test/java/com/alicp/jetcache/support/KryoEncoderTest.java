@@ -58,4 +58,11 @@ public class KryoEncoderTest extends AbstractEncoderTest {
         assertThrows(CacheEncodeException.class, () -> decoder.apply(bytes));
     }
 
+    @Test
+    public void gcTest() {
+        encoder = KryoValueEncoder.INSTANCE;
+        decoder = KryoValueDecoder.INSTANCE;
+        super.gcTest();
+    }
+
 }

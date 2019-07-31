@@ -1,10 +1,9 @@
 [![Build Status](https://travis-ci.org/alibaba/jetcache.svg?branch=master)](https://travis-ci.org/alibaba/jetcache)
 [![Coverage Status](https://coveralls.io/repos/github/alibaba/jetcache/badge.svg?branch=master)](https://coveralls.io/github/alibaba/jetcache?branch=master) 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.alicp.jetcache/jetcache-parent/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.alicp.jetcache/jetcache-parent/)
 [![GitHub release](https://img.shields.io/github/release/alibaba/jetcache.svg)](https://github.com/alibaba/jetcache/releases)
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
-# introduction
+# Introduction
 JetCache is a Java cache abstraction which provides consistent use for various caching solutions. 
 It provides more powerful annotation than that in Spring Cache. The annotation in JetCache supports native TTL, 
 two level caching, and distributed automatically refreshment, also you can operate ```Cache``` instance by hand code. 
@@ -26,9 +25,9 @@ requirements:
 
 Visit [wiki](https://github.com/alibaba/jetcache/wiki) for more documents.
 
-# getting started
+# Getting started
 
-## method cache
+## Method cache
 Declare method cache using ```@Cached``` annotation.  
 ```expire = 3600``` indicates that the elements will expires in 3600 seconds after put.
 JetCache auto generates cache key using all parameters.
@@ -50,8 +49,6 @@ public interface UserService {
 
     @CacheInvalidate(name="userCache-", key="#userId")
     void deleteUser(long userId);
-    
-    //compiler 
 }
 ```
 To enable use parameter name such as ```key="#userId"```, you javac compiler target must be 1.8 and the ```-parameters``` should be set, otherwise use index to access parameters like ```key="args[0]"```
@@ -61,11 +58,13 @@ Automatically refreshment:
 public interface SummaryService{
     @Cached(expire = 3600, cacheType = CacheType.REMOTE)
     @CacheRefresh(refresh = 1800, stopRefreshAfterLastAccess = 3600, timeUnit = TimeUnit.SECONDS)
+    @CachePenetrationProtect
     BigDecimal summaryOfToday(long catagoryId);
 }
 ```
+CachePenetrationProtect annotation indicates to synchronize load operation in multi-thread environment.
 
-## cache API
+## Cache API
 Create a ```Cache``` instance using ```@CreateCache``` annotation:
 ```java
 @CreateCache(expire = 100, cacheType = CacheType.BOTH, localLimit = 50)
@@ -83,10 +82,10 @@ userCache.computeIfAbsent(1234567L, (key) -> loadUserFromDataBase(1234567L));
 Or you can create ```Cache``` instance manually (RedisCache in this example) :
 ```java
 GenericObjectPoolConfig pc = new GenericObjectPoolConfig();
-        pc.setMinIdle(2);
-        pc.setMaxIdle(10);
-        pc.setMaxTotal(10);
-        JedisPool pool = new JedisPool(pc, "localhost", 6379);
+pc.setMinIdle(2);
+pc.setMaxIdle(10);
+pc.setMaxTotal(10);
+JedisPool pool = new JedisPool(pc, "localhost", 6379);
 Cache<Long, UserDO> userCache = RedisCacheBuilder.createRedisCacheBuilder()
                 .keyConvertor(FastjsonKeyConvertor.INSTANCE)
                 .valueEncoder(JavaValueEncoder.INSTANCE)
@@ -97,7 +96,7 @@ Cache<Long, UserDO> userCache = RedisCacheBuilder.createRedisCacheBuilder()
                 .buildCache();
 ```
 
-## advanced API
+## Advanced API
 Asynchronous API:
 ```java
 CacheGetResult r = cache.GET(userId);
@@ -117,7 +116,8 @@ cache.tryLockAndRun("key", 60, TimeUnit.SECONDS, () -> heavyDatabaseOperation())
 Read through and automatically refreshment:
 ```java
 @CreateCache
-@CacheRefresh(timeUnit = TimeUnit.MINUTES, refresh = 60)
+@CacheRefresh(timeUnit = TimeUnit.MINUTES, refresh = 60, stopRefreshAfterLastAccess = 100)
+@CachePenetrationProtect
 private Cache<String, Long> orderSumCache;
 
 @PostConstruct
@@ -126,7 +126,7 @@ public void init(){
 }
 ```
 
-## configuration with Spring Boot
+## Configuration with Spring Boot
 
 pom:
 ```xml
@@ -173,5 +173,5 @@ jetcache:
       port: ${redis.port}
 ```
 
-## more docs
+## More docs
 Visit [wiki](https://github.com/alibaba/jetcache/wiki) for more documents.

@@ -15,16 +15,16 @@ import java.util.regex.Pattern;
  */
 public class DefaultCacheNameGenerator implements CacheNameGenerator {
 
-    private String[] hiddenPackages;
+    protected final String[] hiddenPackages;
 
-    private ConcurrentHashMap<Method, String> cacheNameMap = new ConcurrentHashMap();
+    protected final ConcurrentHashMap<Method, String> cacheNameMap = new ConcurrentHashMap();
 
     public DefaultCacheNameGenerator(String[] hiddenPackages) {
         this.hiddenPackages = hiddenPackages;
     }
 
     @Override
-    public String generateCacheName(Method method) {
+    public String generateCacheName(Method method, Object targetObject) {
         String cacheName = cacheNameMap.get(method);
 
         if (cacheName == null) {
@@ -45,9 +45,9 @@ public class DefaultCacheNameGenerator implements CacheNameGenerator {
             String str = sb.toString();
             cacheNameMap.put(method, str);
             return str;
-        } else {
-            return cacheName;
         }
+
+        return cacheName;
     }
 
     @Override
@@ -61,6 +61,7 @@ public class DefaultCacheNameGenerator implements CacheNameGenerator {
         return sb.toString();
     }
 
+    @SuppressWarnings("PMD.AvoidPatternCompileInMethodRule")
     protected String removeHiddenPackage(String[] hiddenPackages, String packageOrFullClassName) {
         if (hiddenPackages != null && packageOrFullClassName != null) {
             for (String p : hiddenPackages) {

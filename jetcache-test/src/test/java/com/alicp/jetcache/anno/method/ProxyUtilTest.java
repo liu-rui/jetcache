@@ -6,34 +6,36 @@ package com.alicp.jetcache.anno.method;
 import com.alicp.jetcache.anno.*;
 import com.alicp.jetcache.anno.support.CacheContext;
 import com.alicp.jetcache.anno.support.ConfigProvider;
-import com.alicp.jetcache.anno.support.GlobalCacheConfig;
 import com.alicp.jetcache.test.anno.TestUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author <a href="mailto:areyouok@gmail.com">huangli</a>
  */
 public class ProxyUtilTest {
 
-    private GlobalCacheConfig globalCacheConfig;
+    private ConfigProvider configProvider;
 
     @BeforeEach
     public void setup() {
-        globalCacheConfig = TestUtil.createGloableConfig(new ConfigProvider());
-        globalCacheConfig.init();
+        configProvider = TestUtil.createConfigProvider();
+        configProvider.init();
     }
 
     @AfterEach
-    public void stop(){
-        globalCacheConfig.shutdown();
+    public void stop() {
+        configProvider.shutdown();
     }
 
     public interface I1 {
@@ -50,7 +52,7 @@ public class ProxyUtilTest {
             return count++;
         }
 
-        public int countWithoutCache(){
+        public int countWithoutCache() {
             return count++;
         }
     }
@@ -59,7 +61,7 @@ public class ProxyUtilTest {
     //annotation on class
     public void testGetProxyByAnnotation1() {
         I1 c1 = new C1();
-        I1 c2 = ProxyUtil.getProxyByAnnotation(c1, globalCacheConfig);
+        I1 c2 = ProxyUtil.getProxyByAnnotation(c1, configProvider);
         assertNotEquals(c1.count(), c1.count());
         assertNotEquals(c1.countWithoutCache(), c1.countWithoutCache());
         assertEquals(c2.count(), c2.count());
@@ -69,6 +71,7 @@ public class ProxyUtilTest {
     public interface I2 {
         @Cached
         int count();
+
         int countWithoutCache();
     }
 
@@ -78,17 +81,20 @@ public class ProxyUtilTest {
         public int count() {
             return count++;
         }
-        public int countWithoutCache(){
+
+        public int countWithoutCache() {
             return count++;
         }
     }
+
     public class C22 implements I2 {
         int count;
 
         public int count() {
             return count++;
         }
-        public int countWithoutCache(){
+
+        public int countWithoutCache() {
             return count++;
         }
     }
@@ -97,7 +103,7 @@ public class ProxyUtilTest {
     //annotation on intface
     public void testGetProxyByAnnotation2() {
         I2 c1 = new C2();
-        I2 c2 = ProxyUtil.getProxyByAnnotation(c1, globalCacheConfig);
+        I2 c2 = ProxyUtil.getProxyByAnnotation(c1, configProvider);
 
         assertNotEquals(c1.count(), c1.count());
         assertNotEquals(c1.countWithoutCache(), c1.countWithoutCache());
@@ -105,7 +111,7 @@ public class ProxyUtilTest {
         assertNotEquals(c2.countWithoutCache(), c2.countWithoutCache());
 
         I2 c3 = new C22();
-        I2 c4 = ProxyUtil.getProxyByAnnotation(c3, globalCacheConfig);
+        I2 c4 = ProxyUtil.getProxyByAnnotation(c3, configProvider);
         assertEquals(c2.count(), c4.count());
     }
 
@@ -116,6 +122,7 @@ public class ProxyUtilTest {
 
     public interface I3_2 extends I3_1 {
         int count();
+
         int countWithoutCache();
     }
 
@@ -125,7 +132,8 @@ public class ProxyUtilTest {
         public int count() {
             return count++;
         }
-        public int countWithoutCache(){
+
+        public int countWithoutCache() {
             return count++;
         }
 
@@ -135,7 +143,7 @@ public class ProxyUtilTest {
     //annotation on super interface
     public void testGetProxyByAnnotation3() {
         I3_2 c1 = new C3();
-        I3_2 c2 = ProxyUtil.getProxyByAnnotation(c1, globalCacheConfig);
+        I3_2 c2 = ProxyUtil.getProxyByAnnotation(c1, configProvider);
         assertNotEquals(c1.count(), c1.count());
         assertNotEquals(c1.countWithoutCache(), c1.countWithoutCache());
         assertEquals(c2.count(), c2.count());
@@ -144,6 +152,7 @@ public class ProxyUtilTest {
 
     public interface I4_1 {
         int count();
+
         int countWithoutCache();
     }
 
@@ -158,7 +167,8 @@ public class ProxyUtilTest {
         public int count() {
             return count++;
         }
-        public int countWithoutCache(){
+
+        public int countWithoutCache() {
             return count++;
         }
     }
@@ -167,7 +177,7 @@ public class ProxyUtilTest {
     //with super interface
     public void testGetProxyByAnnotation4() {
         I4_1 c1 = new C4();
-        I4_1 c2 = ProxyUtil.getProxyByAnnotation(c1, globalCacheConfig);
+        I4_1 c2 = ProxyUtil.getProxyByAnnotation(c1, configProvider);
         assertNotEquals(c1.count(), c1.count());
         assertNotEquals(c1.countWithoutCache(), c1.countWithoutCache());
         assertEquals(c2.count(), c2.count());
@@ -176,6 +186,7 @@ public class ProxyUtilTest {
 
     public interface I5 {
         int count();
+
         int countWithoutCache();
     }
 
@@ -186,7 +197,8 @@ public class ProxyUtilTest {
         public int count() {
             return count++;
         }
-        public int countWithoutCache(){
+
+        public int countWithoutCache() {
             return count++;
         }
     }
@@ -195,7 +207,7 @@ public class ProxyUtilTest {
     //enabled=false
     public void testGetProxyByAnnotation5() {
         I5 c1 = new C5();
-        I5 c2 = ProxyUtil.getProxyByAnnotation(c1, globalCacheConfig);
+        I5 c2 = ProxyUtil.getProxyByAnnotation(c1, configProvider);
         assertNotEquals(c1.count(), c1.count());
         assertNotEquals(c1.countWithoutCache(), c1.countWithoutCache());
         assertNotEquals(c2.count(), c2.count());
@@ -211,6 +223,7 @@ public class ProxyUtilTest {
 
     public interface I6 {
         int count();
+
         int countWithoutCache();
     }
 
@@ -222,7 +235,8 @@ public class ProxyUtilTest {
         public int count() {
             return count++;
         }
-        public int countWithoutCache(){
+
+        public int countWithoutCache() {
             return count++;
         }
     }
@@ -231,7 +245,7 @@ public class ProxyUtilTest {
     //enabled=false+EnableCache
     public void testGetProxyByAnnotation6() {
         I6 c1 = new C6();
-        I6 c2 = ProxyUtil.getProxyByAnnotation(c1, globalCacheConfig);
+        I6 c2 = ProxyUtil.getProxyByAnnotation(c1, configProvider);
         assertNotEquals(c1.count(), c1.count());
         assertNotEquals(c1.countWithoutCache(), c1.countWithoutCache());
         assertEquals(c2.count(), c2.count());
@@ -240,11 +254,13 @@ public class ProxyUtilTest {
 
     public interface I7_1 {
         int count();
+
         int countWithoutCache();
     }
 
     public class C7_1 implements I7_1 {
         int count;
+
         @Cached(enabled = false)
         public int count() {
             return count++;
@@ -258,6 +274,7 @@ public class ProxyUtilTest {
 
     public interface I7_2 {
         int count();
+
         int countWithoutCache();
     }
 
@@ -268,8 +285,9 @@ public class ProxyUtilTest {
         public int count() {
             return service.count();
         }
+
         @EnableCache
-        public int countWithoutCache(){
+        public int countWithoutCache() {
             return service.countWithoutCache();
         }
     }
@@ -278,11 +296,11 @@ public class ProxyUtilTest {
     //enabled=false+EnableCache（enable in caller）
     public void testGetProxyByAnnotation7() {
         I7_1 c1_1 = new C7_1();
-        I7_1 c1_2 = ProxyUtil.getProxyByAnnotation(c1_1, globalCacheConfig);
+        I7_1 c1_2 = ProxyUtil.getProxyByAnnotation(c1_1, configProvider);
 
         C7_2 c2_1 = new C7_2();
         c2_1.service = c1_2;
-        I7_2 c2_2 = ProxyUtil.getProxyByAnnotation(c2_1, globalCacheConfig);
+        I7_2 c2_2 = ProxyUtil.getProxyByAnnotation(c2_1, configProvider);
         assertNotEquals(c2_1.count(), c2_1.count());
         assertNotEquals(c2_2.countWithoutCache(), c2_2.countWithoutCache());
         assertEquals(c2_2.count(), c2_2.count());
@@ -303,6 +321,12 @@ public class ProxyUtilTest {
 
         @CacheInvalidate(name = "c2", key = "args[0]")
         void delete2(String id);
+
+        @CacheUpdate(name = "c1", key = "#id", value="#result")
+        int randomUpdate(String id);
+
+        @CacheUpdate(name = "c1", key = "#id", value="result")
+        int randomUpdate2(String id);
     }
 
     public class C8 implements I8 {
@@ -339,6 +363,16 @@ public class ProxyUtilTest {
         public void delete2(String theId) {
             m.remove(theId);
         }
+
+        @Override
+        public int randomUpdate(String id) {
+            return new Random().nextInt();
+        }
+
+        @Override
+        public int randomUpdate2(String id) {
+            return new Random().nextInt();
+        }
     }
 
 
@@ -346,7 +380,7 @@ public class ProxyUtilTest {
     // @CacheUpdate and @CacheInvalidate test
     public void testGetProxyByAnnotation8() {
         I8 i8 = new C8();
-        I8 i8_proxy = ProxyUtil.getProxyByAnnotation(i8, globalCacheConfig);
+        I8 i8_proxy = ProxyUtil.getProxyByAnnotation(i8, configProvider);
 
         int v1 = i8_proxy.count("K1");
         assertEquals(v1, i8_proxy.count("K1"));
@@ -365,6 +399,8 @@ public class ProxyUtilTest {
         assertEquals(i8_proxy.count("K1"), i8_proxy.count("K1"));
         assertNotEquals(i8_proxy.count("K1"), i8_proxy.count("K2"));
 
+        assertEquals(i8_proxy.randomUpdate("K1"), i8_proxy.count("K1"));
+        assertEquals(i8_proxy.randomUpdate2("K1"), i8_proxy.count("K1"));
     }
 
     public interface I9 {
@@ -372,7 +408,7 @@ public class ProxyUtilTest {
         @CacheRefresh(refresh = 100, timeUnit = TimeUnit.MILLISECONDS)
         int count();
 
-        @Cached(key="#a", cacheType = CacheType.BOTH)
+        @Cached(key = "#a", cacheType = CacheType.BOTH)
         @CacheRefresh(refresh = 100, timeUnit = TimeUnit.MILLISECONDS)
         int count(int a, int b);
     }
@@ -394,13 +430,22 @@ public class ProxyUtilTest {
     @Test
     // refresh test
     public void testGetProxyByAnnotation9() throws Exception {
-        I9 beanProxy = ProxyUtil.getProxyByAnnotation(new C9(), globalCacheConfig);
+        I9 beanProxy = ProxyUtil.getProxyByAnnotation(new C9(), configProvider);
         {
             int x1 = beanProxy.count();
             int x2 = beanProxy.count();
             assertEquals(x1, x2);
-            Thread.sleep(150);
-            assertNotEquals(x2, beanProxy.count());
+            int i = 0;
+            while (true) { //auto refreshment may take some time to init
+                assertTrue(i < 10);
+                Thread.sleep(150);
+                if (x2 == beanProxy.count()) {
+                    i++;
+                    continue;
+                } else {
+                    break;
+                }
+            }
         }
         {
             int x1 = beanProxy.count(1, 2);
@@ -409,6 +454,80 @@ public class ProxyUtilTest {
             Thread.sleep(150);
             assertEquals(x1 + 1, beanProxy.count(1, 400));
         }
-        globalCacheConfig.shutdown();
+    }
+
+    public interface I10 {
+        @Cached
+        int count1(int p);
+
+        @Cached
+        @CachePenetrationProtect
+        int count2(int p);
+    }
+
+    public class C10 implements I10 {
+        AtomicInteger count1 = new AtomicInteger(0);
+        AtomicInteger count2 = new AtomicInteger(0);;
+
+        @Override
+        public int count1(int p) {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return count1.incrementAndGet();
+        }
+
+        @Override
+        public int count2(int p) {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return count2.incrementAndGet();
+        }
+    }
+
+    @Test
+    // protect test
+    public void testGetProxyByAnnotation10() throws Exception {
+        I10 beanProxy = ProxyUtil.getProxyByAnnotation(new C10(), configProvider);
+
+        // preheat
+        beanProxy.count1(1);
+        beanProxy.count2(1);
+
+        {
+            int[] x = new int[1];
+            int[] y = new int[1];
+            CountDownLatch countDownLatch = new CountDownLatch(2);
+            new Thread(() -> {
+                x[0] = beanProxy.count1(2);
+                countDownLatch.countDown();
+            }).start();
+            new Thread(() -> {
+                y[0] = beanProxy.count1(2);
+                countDownLatch.countDown();
+            }).start();
+            countDownLatch.await();
+            assertNotEquals(x[0], y[0]);
+        }
+        {
+            int[] x = new int[1];
+            int[] y = new int[1];
+            CountDownLatch countDownLatch = new CountDownLatch(2);
+            new Thread(() -> {
+                x[0] = beanProxy.count2(2);
+                countDownLatch.countDown();
+            }).start();
+            new Thread(() -> {
+                y[0] = beanProxy.count2(2);
+                countDownLatch.countDown();
+            }).start();
+            countDownLatch.await();
+            assertEquals(x[0], y[0]);
+        }
     }
 }

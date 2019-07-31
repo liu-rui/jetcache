@@ -32,10 +32,21 @@ public @interface CacheUpdate {
      */
     String key() default CacheConsts.UNDEFINED_STRING;
 
+    /**
+     * Specify the cache value by expression script.
+     * @return an expression script which specifies cache value
+     */
     String value();
 
     /**
-     * Expression attribute used for conditioning the update.
+     * Expression script used for conditioning the cache operation, the operation is vetoed when evaluation result is false.
+     * Evaluation occurs after real method invocation so we can refer <code>#result</code> in script.
      */
     String condition() default CacheConsts.UNDEFINED_STRING;
+
+    /**
+     * If both evaluated key and value are array or instance of java.lang.Iterable,
+     * set multi to true indicates jetcache to update K/V pair to cache instead of update single converted K/V.
+     */
+    boolean multi() default CacheConsts.DEFAULT_MULTI;
 }

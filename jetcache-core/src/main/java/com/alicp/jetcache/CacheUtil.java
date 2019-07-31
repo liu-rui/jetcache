@@ -14,7 +14,7 @@ import java.util.function.Function;
  *
  * @author <a href="mailto:areyouok@gmail.com">huangli</a>
  */
-class CacheUtil {
+public class CacheUtil {
 
     public static <K, V> CacheLoader<K, V> createProxyLoader(Cache<K, V> cache,
                                                              CacheLoader<K, V> loader,
@@ -51,6 +51,11 @@ class CacheUtil {
                 }
                 return kvMap;
             }
+
+            @Override
+            public boolean vetoCacheUpdate() {
+                return loader.vetoCacheUpdate();
+            }
         };
     }
 
@@ -71,6 +76,14 @@ class CacheUtil {
             }
             return v;
         };
+    }
+
+
+    public static <K, V> AbstractCache<K, V> getAbstractCache(Cache<K, V> c) {
+        while (c instanceof ProxyCache) {
+            c = ((ProxyCache) c).getTargetCache();
+        }
+        return (AbstractCache) c;
     }
 
 }

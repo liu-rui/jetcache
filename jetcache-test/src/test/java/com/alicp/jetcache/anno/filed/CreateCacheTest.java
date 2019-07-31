@@ -4,6 +4,7 @@ import com.alicp.jetcache.*;
 import com.alicp.jetcache.anno.*;
 import com.alicp.jetcache.anno.config.EnableCreateCacheAnnotation;
 import com.alicp.jetcache.anno.config.EnableMethodCache;
+import com.alicp.jetcache.anno.support.ConfigProvider;
 import com.alicp.jetcache.anno.support.GlobalCacheConfig;
 import com.alicp.jetcache.anno.support.SpringConfigProvider;
 import com.alicp.jetcache.embedded.EmbeddedCacheConfig;
@@ -13,7 +14,7 @@ import com.alicp.jetcache.support.FastjsonKeyConvertor;
 import com.alicp.jetcache.support.JavaValueDecoder;
 import com.alicp.jetcache.support.JavaValueEncoder;
 import com.alicp.jetcache.test.AbstractCacheTest;
-import com.alicp.jetcache.test.MockRemoteCache;
+import com.alicp.jetcache.external.MockRemoteCache;
 import com.alicp.jetcache.test.anno.TestUtil;
 import com.alicp.jetcache.test.beans.MyFactoryBean;
 import com.alicp.jetcache.test.spring.SpringTest;
@@ -22,6 +23,7 @@ import com.alicp.jetcache.test.support.DynamicQueryWithEquals;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -57,8 +59,8 @@ public class CreateCacheTest extends SpringTest {
         }
 
         @Bean
-        public GlobalCacheConfig config(SpringConfigProvider configProvider) {
-            GlobalCacheConfig pc = TestUtil.createGloableConfig(configProvider);
+        public GlobalCacheConfig config() {
+            GlobalCacheConfig pc = TestUtil.createGloableConfig();
             return pc;
         }
 
@@ -73,6 +75,10 @@ public class CreateCacheTest extends SpringTest {
         }
 
         public static class Foo extends AbstractCacheTest {
+
+            @Autowired
+            private ConfigProvider configProvider;
+
             @CreateCache
             private Cache cache1;
 
@@ -98,6 +104,18 @@ public class CreateCacheTest extends SpringTest {
             @CacheRefresh(timeUnit = TimeUnit.MILLISECONDS, refresh = 100)
             private Cache cacheWithRefresh;
 
+            @CreateCache
+            @CachePenetrationProtect(timeout = 1)
+            private Cache cacheWithProtect;
+
+            @CreateCache(expire = 2, localExpire = 1, cacheType = CacheType.BOTH)
+            private Cache cacheWithLocalExpire_1;
+            @CreateCache(expire = 2, cacheType = CacheType.BOTH)
+            private Cache cacheWithLocalExpire_2;
+            @CreateCache(expire = 2, localExpire = 1, cacheType = CacheType.LOCAL)
+            private Cache cacheWithLocalExpire_3;
+
+
             private Cache getTarget(Cache cache) {
                 while(cache instanceof ProxyCache){
                     cache = ((ProxyCache) cache).getTargetCache();
@@ -109,12 +127,17 @@ public class CreateCacheTest extends SpringTest {
             public void test() throws Exception {
                 runGeneralTest();
                 refreshTest();
+                cacheWithoutConvertorTest();
+                AbstractCacheTest.penetrationProtectTest(cacheWithProtect);
+                testCacheWithLocalExpire();
 
                 cache1.put("KK1", "V1");
                 Assert.assertNull(cache_A1.get("KK1"));
                 Assert.assertNull(cache2.get("KK1"));
 
                 Assert.assertSame(getTarget(cacheSameName1), getTarget(cacheSameName2));
+                Assert.assertSame(getTarget(cacheSameName1),
+                        getTarget(configProvider.getCacheContext().getCache("sameCacheName")));
                 Assert.assertNotSame(getTarget(cacheSameName1), getTarget(cache1));
 
                 cacheSameName1.put("SameKey", "SameValue");
@@ -138,11 +161,26 @@ public class CreateCacheTest extends SpringTest {
                 Assert.assertEquals(50, remoteConfig.getExpireAfterWriteInMillis());
                 Assert.assertEquals(10, localConfig.getLimit());
                 Assert.assertEquals(JavaValueEncoder.class, remoteConfig.getValueEncoder().getClass());
-                Assert.assertEquals(JavaValueDecoder.class, remoteConfig.getValueDecoder().getClass());
+                Assert.assertTrue(remoteConfig.getValueDecoder() instanceof JavaValueDecoder);
                 Assert.assertNull(localConfig.getKeyConvertor());
                 Assert.assertNull(remoteConfig.getKeyConvertor());
 
-                cacheWithoutConvertorTest();
+            }
+
+            private void testCacheWithLocalExpire() {
+                MultiLevelCacheConfig<?,?> config = (MultiLevelCacheConfig) cacheWithLocalExpire_1.config();
+                Assert.assertTrue(config.isUseExpireOfSubCache());
+                Assert.assertEquals(2000, config.getExpireAfterWriteInMillis());
+                Assert.assertEquals(1000, config.getCaches().get(0).config().getExpireAfterWriteInMillis());
+                Assert.assertEquals(2000, config.getCaches().get(1).config().getExpireAfterWriteInMillis());
+
+                config = (MultiLevelCacheConfig) cacheWithLocalExpire_2.config();
+                Assert.assertFalse(config.isUseExpireOfSubCache());
+                Assert.assertEquals(2000, config.getExpireAfterWriteInMillis());
+                Assert.assertEquals(2000, config.getCaches().get(0).config().getExpireAfterWriteInMillis());
+                Assert.assertEquals(2000, config.getCaches().get(1).config().getExpireAfterWriteInMillis());
+
+                Assert.assertEquals(2000, cacheWithLocalExpire_3.config().getExpireAfterWriteInMillis());
             }
 
             private void runGeneralTest() throws Exception {

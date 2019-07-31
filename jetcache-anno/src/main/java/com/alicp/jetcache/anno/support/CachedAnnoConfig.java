@@ -17,14 +17,17 @@ public class CachedAnnoConfig extends CacheAnnoConfig {
     private boolean enabled;
     private TimeUnit timeUnit;
     private long expire;
+    private long localExpire;
     private CacheType cacheType;
     private int localLimit;
     private boolean cacheNullValue;
     private String serialPolicy;
     private String keyConvertor;
+    private String postCondition;
 
-    private Function<Object, Boolean> unlessEvaluator;
+    private Function<Object, Boolean> postConditionEvaluator;
     private RefreshPolicy refreshPolicy;
+    private PenetrationProtectConfig penetrationProtectConfig;
 
     public boolean isEnabled() {
         return enabled;
@@ -90,12 +93,21 @@ public class CachedAnnoConfig extends CacheAnnoConfig {
         this.timeUnit = timeUnit;
     }
 
-    public Function<Object, Boolean> getUnlessEvaluator() {
-        return unlessEvaluator;
+
+    public String getPostCondition() {
+        return postCondition;
     }
 
-    public void setUnlessEvaluator(Function<Object, Boolean> unlessEvaluator) {
-        this.unlessEvaluator = unlessEvaluator;
+    public void setPostCondition(String postCondition) {
+        this.postCondition = postCondition;
+    }
+
+    public Function<Object, Boolean> getPostConditionEvaluator() {
+        return postConditionEvaluator;
+    }
+
+    public void setPostConditionEvaluator(Function<Object, Boolean> postConditionEvaluator) {
+        this.postConditionEvaluator = postConditionEvaluator;
     }
 
     public RefreshPolicy getRefreshPolicy() {
@@ -104,5 +116,21 @@ public class CachedAnnoConfig extends CacheAnnoConfig {
 
     public void setRefreshPolicy(RefreshPolicy refreshPolicy) {
         this.refreshPolicy = refreshPolicy;
+    }
+
+    public PenetrationProtectConfig getPenetrationProtectConfig() {
+        return penetrationProtectConfig;
+    }
+
+    public void setPenetrationProtectConfig(PenetrationProtectConfig penetrationProtectConfig) {
+        this.penetrationProtectConfig = penetrationProtectConfig;
+    }
+
+    public long getLocalExpire() {
+        return localExpire;
+    }
+
+    public void setLocalExpire(long localExpire) {
+        this.localExpire = localExpire;
     }
 }

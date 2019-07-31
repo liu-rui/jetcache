@@ -52,6 +52,12 @@ public @interface Cached {
     int expire() default CacheConsts.UNDEFINED_INT;
 
     /**
+     * Use to specify the local cache expire time when cacheType=CacheType.BOTH, use "expire" if absent.
+     * @return the local cache expire time
+     */
+    int localExpire() default CacheConsts.UNDEFINED_INT;
+
+    /**
      * Type of the Cache instance. May be CacheType.REMOTE, CacheType.LOCAL, CacheType.BOTH.
      * Create a two level cache (local+remote) when value is CacheType.BOTH.
      * @return cache type of the method cache
@@ -98,9 +104,17 @@ public @interface Cached {
     boolean cacheNullValue() default CacheConsts.DEFAULT_CACHE_NULL_VALUE;
 
     /**
-     * Expression attribute used for conditioning the method caching.
-     * <p>Default is "", meaning the method is always cached.
+     * Expression script used for conditioning the method caching, the cache is not
+     * used when evaluation result is false.
+     * Evaluation occurs before real method invocation.
      */
     String condition() default CacheConsts.UNDEFINED_STRING;
+
+    /**
+     * Expression script used for conditioning the method cache updating,
+     * the cache updating action is vetoed when the evaluation result is false.
+     * Evaluation occurs after real method invocation so we can refer <i>result</i> in script.
+     */
+    String postCondition() default CacheConsts.UNDEFINED_STRING;
 
 }

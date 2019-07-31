@@ -9,8 +9,10 @@ import com.alicp.jetcache.anno.*;
 import com.alicp.jetcache.anno.support.CacheInvalidateAnnoConfig;
 import com.alicp.jetcache.anno.support.CacheUpdateAnnoConfig;
 import com.alicp.jetcache.anno.support.CachedAnnoConfig;
+import com.alicp.jetcache.anno.support.PenetrationProtectConfig;
 
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,9 +31,11 @@ public class CacheConfigUtil {
         cc.setEnabled(anno.enabled());
         cc.setTimeUnit(anno.timeUnit());
         cc.setExpire(anno.expire());
+        cc.setLocalExpire(anno.localExpire());
         cc.setLocalLimit(anno.localLimit());
         cc.setCacheNullValue(anno.cacheNullValue());
         cc.setCondition(anno.condition());
+        cc.setPostCondition(anno.postCondition());
         cc.setSerialPolicy(anno.serialPolicy());
         cc.setKeyConvertor(anno.keyConvertor());
         cc.setKey(anno.key());
@@ -43,7 +47,23 @@ public class CacheConfigUtil {
             cc.setRefreshPolicy(policy);
         }
 
+        CachePenetrationProtect protectAnno = m.getAnnotation(CachePenetrationProtect.class);
+        if (protectAnno != null) {
+            PenetrationProtectConfig protectConfig = parsePenetrationProtectConfig(protectAnno);
+            cc.setPenetrationProtectConfig(protectConfig);
+        }
+
         return cc;
+    }
+
+    public static PenetrationProtectConfig parsePenetrationProtectConfig(CachePenetrationProtect protectAnno) {
+        PenetrationProtectConfig protectConfig = new PenetrationProtectConfig();
+        protectConfig.setPenetrationProtect(protectAnno.value());
+        if (!CacheConsts.isUndefined(protectAnno.timeout())) {
+            long timeout = protectAnno.timeUnit().toMillis(protectAnno.timeout());
+            protectConfig.setPenetrationProtectTimeout(Duration.ofMillis(timeout));
+        }
+        return protectConfig;
     }
 
     public static RefreshPolicy parseRefreshPolicy(CacheRefresh cacheRefresh) {
@@ -72,6 +92,7 @@ public class CacheConfigUtil {
         }
         cc.setKey(anno.key());
         cc.setCondition(anno.condition());
+        cc.setMulti(anno.multi());
         cc.setDefineMethod(m);
         return cc;
     }
@@ -93,6 +114,7 @@ public class CacheConfigUtil {
             throw new CacheConfigException("value is required for @CacheUpdate: " + m.getClass().getName() + "." + m.getName());
         }
         cc.setCondition(anno.condition());
+        cc.setMulti(anno.multi());
         cc.setDefineMethod(m);
         return cc;
     }

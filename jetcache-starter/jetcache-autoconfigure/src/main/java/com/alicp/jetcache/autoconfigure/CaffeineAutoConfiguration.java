@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 public class CaffeineAutoConfiguration extends EmbeddedCacheAutoInit {
     public CaffeineAutoConfiguration() {
         super("caffeine");
-        System.out.println("CaffeineAutoConfiguration init");
     }
 
     @Override
@@ -25,7 +24,7 @@ public class CaffeineAutoConfiguration extends EmbeddedCacheAutoInit {
         return builder;
     }
 
-    public static class CaffeineCondition extends JetCacheConditon {
+    public static class CaffeineCondition extends JetCacheCondition {
         public CaffeineCondition() {
             super("caffeine");
         }

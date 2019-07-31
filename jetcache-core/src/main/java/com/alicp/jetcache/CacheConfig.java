@@ -2,6 +2,7 @@ package com.alicp.jetcache;
 
 import com.alicp.jetcache.anno.CacheConsts;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -12,8 +13,6 @@ import java.util.function.Function;
  * @author <a href="mailto:areyouok@gmail.com">huangli</a>
  */
 public class CacheConfig<K, V> implements Cloneable {
-    //    private long defaultExpireInMillis = CacheConsts.DEFAULT_EXPIRE * 1000L;
-//    private boolean expireAfterAccess = false;
     private long expireAfterWriteInMillis = CacheConsts.DEFAULT_EXPIRE * 1000L;
     private long expireAfterAccessInMillis = 0;
     private Function<K, Object> keyConvertor;
@@ -31,6 +30,9 @@ public class CacheConfig<K, V> implements Cloneable {
     private int tryLockInquiryCount = 1;
 
     private int tryLockLockCount = 2;
+
+    private boolean cachePenetrationProtect = false;
+    private Duration penetrationProtectTimeout = null;
 
     @Override
     public CacheConfig clone() {
@@ -144,5 +146,21 @@ public class CacheConfig<K, V> implements Cloneable {
 
     public void setTryLockLockCount(int tryLockLockCount) {
         this.tryLockLockCount = tryLockLockCount;
+    }
+
+    public boolean isCachePenetrationProtect() {
+        return cachePenetrationProtect;
+    }
+
+    public void setCachePenetrationProtect(boolean cachePenetrationProtect) {
+        this.cachePenetrationProtect = cachePenetrationProtect;
+    }
+
+    public Duration getPenetrationProtectTimeout() {
+        return penetrationProtectTimeout;
+    }
+
+    public void setPenetrationProtectTimeout(Duration penetrationProtectTimeout) {
+        this.penetrationProtectTimeout = penetrationProtectTimeout;
     }
 }

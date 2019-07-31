@@ -10,10 +10,6 @@ import com.alicp.jetcache.anno.support.CachedAnnoConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 /**
  * @author <a href="mailto:areyouok@gmail.com">huangli</a>
  */
@@ -21,11 +17,13 @@ class ExpressionUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(ExpressionUtil.class);
 
+    static Object EVAL_FAILED = new Object();
+
     public static boolean evalCondition(CacheInvokeContext context, CacheAnnoConfig cac) {
         String condition = cac.getCondition();
         try {
             if (cac.getConditionEvaluator() == null) {
-                if (CacheConsts.UNDEFINED_STRING.equals(condition)) {
+                if (CacheConsts.isUndefined(condition)) {
                     cac.setConditionEvaluator(o -> true);
                 } else {
                     ExpressionEvaluator e = new ExpressionEvaluator(condition, cac.getDefineMethod());
@@ -39,11 +37,29 @@ class ExpressionUtil {
         }
     }
 
+    public static boolean evalPostCondition(CacheInvokeContext context, CachedAnnoConfig cac) {
+        String postCondition = cac.getPostCondition();
+        try {
+            if (cac.getPostConditionEvaluator() == null) {
+                if (CacheConsts.isUndefined(postCondition)) {
+                    cac.setPostConditionEvaluator(o -> true);
+                } else {
+                    ExpressionEvaluator e = new ExpressionEvaluator(postCondition, cac.getDefineMethod());
+                    cac.setPostConditionEvaluator((o) -> (Boolean) e.apply(o));
+                }
+            }
+            return cac.getPostConditionEvaluator().apply(context);
+        } catch (Exception e) {
+            logger.error("error occurs when eval postCondition \"" + postCondition + "\" in " + context.getMethod() + ":" + e.getMessage(), e);
+            return false;
+        }
+    }
+
     public static Object evalKey(CacheInvokeContext context, CacheAnnoConfig cac) {
         String keyScript = cac.getKey();
         try {
             if (cac.getKeyEvaluator() == null) {
-                if (CacheConsts.UNDEFINED_STRING.equals(keyScript)) {
+                if (CacheConsts.isUndefined(keyScript)) {
                     cac.setKeyEvaluator(o -> {
                         CacheInvokeContext c = (CacheInvokeContext) o;
                         return c.getArgs() == null ? "_$JETCACHE_NULL_KEY$_" : c.getArgs();
@@ -70,7 +86,7 @@ class ExpressionUtil {
             return cac.getValueEvaluator().apply(context);
         } catch (Exception e) {
             logger.error("error occurs when eval value \"" + valueScript + "\" in " + context.getMethod() + ":" + e.getMessage(), e);
-            return null;
+            return EVAL_FAILED;
         }
     }
 }
